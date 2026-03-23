@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400, initial-scale=1.0">
+  <title>BarcodeGen</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-icon" aria-hidden="true">
+        <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+          <rect x="0"  y="0" width="3" height="16" fill="currentColor"/>
+          <rect x="5"  y="3" width="1" height="10" fill="currentColor"/>
+          <rect x="8"  y="0" width="4" height="16" fill="currentColor"/>
+          <rect x="14" y="3" width="2" height="10" fill="currentColor"/>
+          <rect x="18" y="0" width="2" height="16" fill="currentColor"/>
+          <rect x="21" y="3" width="1" height="10" fill="currentColor"/>
+        </svg>
+      </div>
+      <h1 class="logo-text">BARCODE<span class="logo-accent">GEN</span></h1>
+      <span class="version-tag">v1.0</span>
+    </header>
+
+    <!-- Mode Toggle -->
+    <div class="toggle-wrap">
+      <div class="toggle-track" role="group" aria-label="Output type">
+        <div class="toggle-thumb" id="toggle-thumb" aria-hidden="true"></div>
+        <button class="toggle-opt active" id="btn-qr" aria-pressed="true">QR CODE</button>
+        <button class="toggle-opt" id="btn-barcode" aria-pressed="false">BARCODE</button>
+      </div>
+    </div>
+
+    <!-- Format Selector (Barcode only) -->
+    <div class="format-row hidden" id="format-row">
+      <label class="field-label" for="format-select">FORMAT</label>
+      <select id="format-select" class="format-select">
+        <option value="CODE128">CODE 128</option>
+        <option value="EAN13">EAN-13</option>
+        <option value="EAN8">EAN-8</option>
+        <option value="UPCA">UPC-A</option>
+        <option value="CODE39">CODE 39</option>
+      </select>
+    </div>
+
+    <!-- Value Input -->
+    <div class="input-row">
+      <input
+        type="text"
+        id="value-input"
+        class="value-input"
+        placeholder="Enter text or URL…"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        aria-label="Barcode value"
+      >
+    </div>
+
+    <!-- Inline Error -->
+    <div class="error-line hidden" id="error-line" role="alert" aria-live="polite"></div>
+
+    <!-- Generate Button -->
+    <button class="gen-btn" id="gen-btn">
+      <span>GENERATE</span>
+      <span class="gen-hint">↵ Enter</span>
+    </button>
+
+    <!-- Scan Window -->
+    <div class="scan-window" id="scan-window" aria-label="Generated code output">
+      <div class="scan-placeholder" id="scan-placeholder" aria-hidden="true">
+        <div class="placeholder-bars">
+          <span style="height:22px"></span>
+          <span style="height:14px"></span>
+          <span style="height:30px"></span>
+          <span style="height:10px"></span>
+          <span style="height:26px"></span>
+          <span style="height:16px"></span>
+          <span style="height:30px"></span>
+        </div>
+        <p class="placeholder-hint">Output appears here</p>
+      </div>
+      <div class="output-area hidden" id="output-area"></div>
+    </div>
+
+    <!-- Size Slider + Download -->
+    <div class="controls-row">
+      <div class="slider-group">
+        <span class="field-label" id="size-label">SIZE</span>
+        <input
+          type="range"
+          id="size-slider"
+          class="size-slider"
+          min="1" max="5" value="3"
+          aria-label="Output size"
+          aria-labelledby="size-label"
+        >
+        <span class="slider-badge" id="slider-badge">M</span>
+      </div>
+      <button class="dl-btn" id="dl-btn" disabled aria-label="Download as PNG">
+        ↓ PNG
+      </button>
+    </div>
+
+  </div>
+
+  <script src="libs/jsbarcode.min.js"></script>
+  <script src="libs/qrcode.min.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
