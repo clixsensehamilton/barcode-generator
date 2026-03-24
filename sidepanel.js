@@ -10,7 +10,7 @@ let currentFormat = 'CODE128';
 let currentScale  = 3;
 let hasOutput     = false;
 let debounceTimer = null;
-let history = []; // [{ value, mode, format, pinned, ts }]
+let history = []; // [{ value:string, mode:'qr'|'barcode', format:string, pinned:bool, ts:number(ms) }]
 
 // ── Scale Map ──────────────────────────────────────────────
 const SCALE = {
