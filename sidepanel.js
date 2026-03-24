@@ -57,6 +57,10 @@ const outputArea   = document.getElementById('output-area');
 const sizeSlider   = document.getElementById('size-slider');
 const sliderBadge  = document.getElementById('slider-badge');
 const dlBtn        = document.getElementById('dl-btn');
+const historySection = document.getElementById('history-section');
+const historyHeader  = document.getElementById('history-header');
+const historyCount   = document.getElementById('history-count');
+const historyList    = document.getElementById('history-list');
 
 // ── Mode ───────────────────────────────────────────────────
 function setMode(mode) {
@@ -129,6 +133,53 @@ function addToHistory(value, mode, format) {
   }
 
   renderHistory();
+}
+
+function renderHistory() {
+  historyCount.textContent = '(' + history.length + ')';
+  historyList.innerHTML = '';
+
+  const pinned   = history.filter(e =>  e.pinned).sort((a, b) => b.ts - a.ts);
+  const unpinned = history.filter(e => !e.pinned).sort((a, b) => b.ts - a.ts);
+
+  pinned.forEach(entry => historyList.appendChild(makeHistoryItem(entry)));
+
+  if (pinned.length > 0 && unpinned.length > 0) {
+    const div = document.createElement('li');
+    div.className = 'history-divider';
+    historyList.appendChild(div);
+  }
+
+  unpinned.forEach(entry => historyList.appendChild(makeHistoryItem(entry)));
+}
+
+function makeHistoryItem(entry) {
+  const li = document.createElement('li');
+  li.className = 'history-item';
+
+  // Pin button — innerHTML is safe here (PIN_ICON_OFF/ON are developer constants, not user data)
+  const pin = document.createElement('button');
+  pin.className = 'history-pin' + (entry.pinned ? ' pinned' : '');
+  pin.setAttribute('aria-label', entry.pinned ? 'Unpin' : 'Pin');
+  pin.innerHTML = entry.pinned ? PIN_ICON_ON : PIN_ICON_OFF;
+  pin.addEventListener('click', function (e) {
+    e.stopPropagation();
+    entry.pinned = !entry.pinned;
+    renderHistory();
+  });
+
+  // Value text — textContent to avoid XSS (user-supplied data)
+  const span = document.createElement('span');
+  span.className = 'history-value';
+  span.textContent = entry.value;
+
+  span.addEventListener('click', function () {
+    restoreFromHistory(entry);
+  });
+
+  li.appendChild(pin);
+  li.appendChild(span);
+  return li;
 }
 
 // ── Validate ───────────────────────────────────────────────
