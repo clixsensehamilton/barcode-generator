@@ -182,6 +182,28 @@ function makeHistoryItem(entry) {
   return li;
 }
 
+function restoreFromHistory(entry) {
+  // Update mode state and UI directly — do NOT call setMode() because it calls clearOutput()
+  currentMode = entry.mode;
+  btnQr.classList.toggle('active', entry.mode === 'qr');
+  btnQr.setAttribute('aria-pressed', String(entry.mode === 'qr'));
+  btnBarcode.classList.toggle('active', entry.mode === 'barcode');
+  btnBarcode.setAttribute('aria-pressed', String(entry.mode === 'barcode'));
+  toggleThumb.classList.toggle('right', entry.mode === 'barcode');
+  formatRow.classList.toggle('hidden', entry.mode === 'qr');
+
+  if (entry.mode === 'barcode') {
+    currentFormat = entry.format;
+    formatSelect.value = entry.format;
+  }
+
+  valueInput.value = entry.value;
+  valueInput.placeholder = PLACEHOLDERS[entry.mode === 'qr' ? 'QR' : entry.format];
+
+  clearError();
+  generate();
+}
+
 // ── Validate ───────────────────────────────────────────────
 function validate(value) {
   const key = currentMode === 'qr' ? 'QR' : currentFormat;
@@ -215,6 +237,7 @@ function generate() {
       generateBarcode(value, scale);
     }
     showOutput();
+    addToHistory(value, currentMode, currentFormat);
   } catch (err) {
     showError('Could not generate — check your input value.');
     clearOutput();
@@ -369,6 +392,11 @@ sizeSlider.addEventListener('input', () => {
 });
 
 dlBtn.addEventListener('click', downloadPNG);
+
+historyHeader.addEventListener('click', function () {
+  const collapsed = historySection.classList.toggle('collapsed');
+  document.getElementById('history-chevron').setAttribute('aria-pressed', String(!collapsed));
+});
 
 // ── Init ───────────────────────────────────────────────────
 setMode('qr');
