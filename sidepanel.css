@@ -484,3 +484,114 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--c-muted); }
+
+/* ── History Section ── */
+.history-section {
+  flex-shrink: 0;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+
+.history-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--c-muted);
+}
+
+.history-chevron {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--c-muted);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.history-section.collapsed .history-chevron {
+  transform: rotate(-90deg);
+}
+
+.history-section.collapsed .history-list {
+  display: none;
+}
+
+.history-list {
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  margin-top: 4px;
+}
+
+.history-list:empty {
+  display: none;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  height: 34px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.history-item:hover {
+  background: var(--c-raised);
+}
+
+.history-pin {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--c-muted);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.history-pin:hover {
+  color: var(--c-text);
+}
+
+.history-pin.pinned {
+  color: var(--c-accent);
+}
+
+.history-value {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.history-divider {
+  height: 0;
+  border: none;
+  border-top: 1px solid var(--c-border);
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
