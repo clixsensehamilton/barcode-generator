@@ -1,11 +1,16 @@
 'use strict';
 
+// ── Pin Icon SVGs (developer-controlled strings, not user data) ──────────
+const PIN_ICON_OFF = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.5 1.5L10.5 3.5L7.5 6.5L8 9L6 7L3 10L2 9L5 6L3 4L5.5 4.5L8.5 1.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+const PIN_ICON_ON  = `<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8.5 1.5L10.5 3.5L7.5 6.5L8 9L6 7L3 10L2 9L5 6L3 4L5.5 4.5L8.5 1.5Z"/></svg>`;
+
 // ── State ──────────────────────────────────────────────────
 let currentMode   = 'qr';      // 'qr' | 'barcode'
 let currentFormat = 'CODE128';
 let currentScale  = 3;
 let hasOutput     = false;
 let debounceTimer = null;
+let history = []; // [{ value, mode, format, pinned, ts }]
 
 // ── Scale Map ──────────────────────────────────────────────
 const SCALE = {
@@ -102,6 +107,30 @@ function showError(msg) {
   valueInput.classList.add('input-error');
 }
 
+// ── History ────────────────────────────────────────────────
+const MAX_HISTORY = 10;
+
+function addToHistory(value, mode, format) {
+  const existing = history.find(
+    e => e.value === value && e.mode === mode && e.format === format
+  );
+
+  if (existing) {
+    existing.ts = Date.now();
+  } else {
+    history.push({ value, mode, format, pinned: false, ts: Date.now() });
+  }
+
+  // Evict oldest unpinned entries beyond MAX_HISTORY
+  const unpinned = history.filter(e => !e.pinned);
+  if (unpinned.length > MAX_HISTORY) {
+    const oldest = unpinned.reduce((a, b) => (a.ts < b.ts ? a : b));
+    history.splice(history.indexOf(oldest), 1);
+  }
+
+  renderHistory();
+}
+
 // ── Validate ───────────────────────────────────────────────
 function validate(value) {
   const key = currentMode === 'qr' ? 'QR' : currentFormat;
@@ -185,8 +214,17 @@ function downloadPNG() {
 }
 
 function downloadQRPNG() {
-  const canvas = outputArea.querySelector('canvas');
-  if (!canvas) return;
+  const src = outputArea.querySelector('canvas');
+  if (!src) return;
+
+  // Draw onto a white-filled canvas so the PNG background is never transparent
+  const canvas = document.createElement('canvas');
+  canvas.width  = src.width;
+  canvas.height = src.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(src, 0, 0);
 
   const link = document.createElement('a');
   link.download = 'barcode.png';
