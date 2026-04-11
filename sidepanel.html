@@ -25,6 +25,16 @@
       <span class="version-tag">v1.1</span>
     </header>
 
+    <!-- Feature Selector -->
+    <div class="feature-select-wrap">
+      <select id="feature-select" class="feature-select" aria-label="Select feature">
+        <option value="barcode">Barcode Generator</option>
+        <option value="arduino">Arduino BT Controller</option>
+      </select>
+    </div>
+
+    <section id="feature-barcode">
+
     <!-- Mode Toggle -->
     <div class="toggle-wrap">
       <div class="toggle-track" role="group" aria-label="Output type">
@@ -115,6 +125,94 @@
       </div>
       <ul class="history-list" id="history-list"></ul>
     </div>
+
+    </section> <!-- /feature-barcode -->
+
+    <section id="feature-arduino" class="hidden">
+      <div class="ard-panel">
+
+        <!-- Device Config -->
+        <div class="ard-config-row">
+          <div class="ard-field-group">
+            <label class="field-label" for="ard-device-name">DEVICE NAME</label>
+            <input type="text" id="ard-device-name" class="ard-input" value="ESP32_WS"
+                   autocomplete="off" spellcheck="false" aria-label="Bluetooth device name">
+          </div>
+          <button class="ard-btn-secondary" id="ard-btn-test">TEST</button>
+        </div>
+
+        <!-- Compatibility warning (hidden by default) -->
+        <div class="ard-compat-warn hidden" id="ard-compat-warn" role="alert">
+          Web Bluetooth requires Chrome on desktop or Android.
+        </div>
+
+        <!-- Connect row -->
+        <div class="ard-connect-row">
+          <div class="ard-status-dot" id="ard-status-dot" aria-hidden="true"></div>
+          <button class="ard-btn-connect" id="ard-btn-connect">CONNECT</button>
+        </div>
+
+        <div class="ard-divider"></div>
+
+        <!-- Manual send -->
+        <label class="field-label" for="ard-value-input">VALUE TO SEND</label>
+        <div class="ard-send-row">
+          <input type="text" id="ard-value-input" class="ard-input"
+                 placeholder="Enter value..." disabled autocomplete="off" spellcheck="false">
+          <button class="ard-btn-send" id="ard-btn-send" disabled>SEND</button>
+        </div>
+
+        <div class="ard-divider"></div>
+
+        <!-- Sequence mode -->
+        <div class="field-label" style="margin-bottom:8px">SEQUENCE MODE</div>
+        <div class="ard-seq-grid">
+          <div class="ard-field-group">
+            <label class="field-label" for="ard-increment">INCREMENT</label>
+            <input type="number" id="ard-increment" class="ard-input" value="10" min="1" disabled>
+          </div>
+          <div class="ard-field-group">
+            <label class="field-label" for="ard-max-value">MAX VALUE</label>
+            <input type="number" id="ard-max-value" class="ard-input" value="100" min="1" disabled>
+          </div>
+          <div class="ard-field-group">
+            <label class="field-label" for="ard-threshold">THRESHOLD</label>
+            <input type="number" id="ard-threshold" class="ard-input" value="0" disabled>
+          </div>
+          <div class="ard-field-group">
+            <label class="field-label" for="ard-delay">DELAY (MS)</label>
+            <input type="number" id="ard-delay" class="ard-input" value="3000" min="0" disabled>
+          </div>
+        </div>
+
+        <!-- Validation error -->
+        <div class="ard-seq-error hidden" id="ard-seq-error" role="alert"></div>
+
+        <!-- Start/stop button -->
+        <button class="ard-btn-start" id="ard-btn-start" disabled>START</button>
+
+        <!-- Sequence progress (hidden until running) -->
+        <div class="ard-seq-progress hidden" id="ard-seq-progress">
+          <div class="ard-progress-header">
+            <span id="ard-progress-label">Sequence progress</span>
+            <span id="ard-progress-step"></span>
+          </div>
+          <div class="ard-progress-track">
+            <div class="ard-progress-fill" id="ard-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="ard-divider"></div>
+
+        <!-- Activity log -->
+        <div class="ard-log-header">
+          <span class="field-label">ACTIVITY LOG</span>
+          <button class="ard-btn-clear-log" id="ard-btn-clear-log">CLEAR</button>
+        </div>
+        <div class="ard-log-box" id="ard-log-box" aria-live="polite"></div>
+
+      </div>
+    </section>
 
   </div>
 
