@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "BarcodeGen",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Generate QR codes and barcodes in the side panel. 100% offline — no data collected.",
-  "permissions": ["sidePanel"],
+  "permissions": ["sidePanel", "bluetooth"],
   "action": {
     "default_title": "Open BarcodeGen",
     "default_icon": {
