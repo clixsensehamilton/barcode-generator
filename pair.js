@@ -88,10 +88,6 @@ elBtn.addEventListener('click', async function () {
     elBtn.textContent = 'Disconnect & Close';
     elBtn.className = 'connected';
     elBtn.disabled = false;
-    // Minimize window so it stays running but out of the way
-    chrome.windows.getCurrent(function (win) {
-      chrome.windows.update(win.id, { state: 'minimized' });
-    });
     elBtn.addEventListener('click', function onDisconn() {
       elBtn.removeEventListener('click', onDisconn);
       if (btDevice && btDevice.gatt.connected) btDevice.gatt.disconnect();
