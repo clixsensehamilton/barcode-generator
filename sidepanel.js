@@ -430,5 +430,298 @@ registerFeature({
 });
 
 // ============================================================
-// Feature: Arduino BT Controller — added in Task 6
+// Feature: Arduino BT Controller
 // ============================================================
+
+registerFeature((function () {
+  const NUS_SERVICE = '6e400001-b5b4-f393-e0a9-e50e24dcca9e';
+  const NUS_TX_CHAR = '6e400002-b5b4-f393-e0a9-e50e24dcca9e';
+  const NUS_RX_CHAR = '6e400003-b5b4-f393-e0a9-e50e24dcca9e';
+
+  let btDevice   = null;
+  let txChar     = null;
+  let seqRunning = false;
+  let seqAbort   = false;
+
+  // DOM refs — assigned in init()
+  let elDeviceName, elBtnTest, elBtnConnect, elStatusDot, elCompatWarn;
+  let elValueInput, elBtnSend;
+  let elIncrement, elMaxValue, elThreshold, elDelay;
+  let elSeqError, elBtnStart, elSeqProgress;
+  let elProgressFill, elProgressLabel, elProgressStep;
+  let elLogBox, elBtnClearLog;
+
+  // Build a log entry using safe DOM APIs only
+  function log(msg, type) {
+    type = type || 'info';
+    const time = new Date().toTimeString().slice(0, 8);
+    const entry = document.createElement('div');
+    entry.className = 'ard-log-entry';
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'ard-log-time';
+    timeSpan.textContent = time;
+    const textSpan = document.createElement('span');
+    textSpan.className = 'ard-log-' + type;
+    textSpan.textContent = msg;
+    entry.appendChild(timeSpan);
+    entry.appendChild(textSpan);
+    elLogBox.appendChild(entry);
+    elLogBox.scrollTop = elLogBox.scrollHeight;
+  }
+
+  function setConnected(state) {
+    elStatusDot.className = 'ard-status-dot' + (state ? ' connected' : '');
+    elBtnConnect.textContent = state ? 'DISCONNECT' : 'CONNECT';
+    elBtnConnect.classList.toggle('connected', state);
+    elBtnTest.disabled    = state;
+    elValueInput.disabled = !state;
+    elBtnSend.disabled    = !state;
+    elIncrement.disabled  = !state;
+    elMaxValue.disabled   = !state;
+    elThreshold.disabled  = !state;
+    elDelay.disabled      = !state;
+    elBtnStart.disabled   = !state;
+    if (state) elValueInput.focus();
+    if (!state && seqRunning) {
+      seqAbort   = true;
+      seqRunning = false;
+      setSeqRunning(false);
+    }
+  }
+
+  function setSeqRunning(running) {
+    elBtnStart.textContent = running ? 'STOP' : 'START';
+    elBtnStart.classList.toggle('running', running);
+    elIncrement.disabled  = running;
+    elMaxValue.disabled   = running;
+    elThreshold.disabled  = running;
+    elDelay.disabled      = running;
+    elValueInput.disabled = running;
+    elBtnSend.disabled    = running;
+    elBtnConnect.disabled = running;
+  }
+
+  async function testConnection() {
+    const name = elDeviceName.value.trim() || 'ESP32_WS';
+    elBtnTest.disabled = true;
+    log('Testing connection to ' + name + '...', 'info');
+    try {
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ name }],
+        optionalServices: [NUS_SERVICE],
+      });
+      await device.gatt.connect();
+      log('Connected to ' + device.name, 'recv');
+      device.gatt.disconnect();
+      log('Test complete — disconnected.', 'info');
+    } catch (err) {
+      if (err.name !== 'NotFoundError') log('Test failed: ' + err.message, 'err');
+      else log('Test cancelled.', 'info');
+    } finally {
+      elBtnTest.disabled = false;
+    }
+  }
+
+  async function connect() {
+    const name = elDeviceName.value.trim() || 'ESP32_WS';
+    log('Connecting to ' + name + '...', 'info');
+    try {
+      btDevice = await navigator.bluetooth.requestDevice({
+        filters: [{ name }],
+        optionalServices: [NUS_SERVICE],
+      });
+      btDevice.addEventListener('gattserverdisconnected', onDisconnected);
+      const server  = await btDevice.gatt.connect();
+      log('Connected. Discovering services...', 'info');
+      const service = await server.getPrimaryService(NUS_SERVICE);
+      txChar = await service.getCharacteristic(NUS_TX_CHAR);
+      try {
+        const rxChar = await service.getCharacteristic(NUS_RX_CHAR);
+        await rxChar.startNotifications();
+        rxChar.addEventListener('characteristicvaluechanged', onReceive);
+      } catch (_) { /* RX notifications optional */ }
+      setConnected(true);
+      log('Ready — connected to ' + btDevice.name, 'recv');
+    } catch (err) {
+      if (err.name !== 'NotFoundError') log('Connection error: ' + err.message, 'err');
+      else log('Connection cancelled.', 'info');
+      btDevice = null;
+      txChar   = null;
+      setConnected(false);
+    }
+  }
+
+  function disconnect() {
+    if (btDevice && btDevice.gatt.connected) btDevice.gatt.disconnect();
+  }
+
+  function onDisconnected() {
+    seqAbort = true;
+    txChar   = null;
+    setConnected(false);
+    log('Disconnected.', 'err');
+  }
+
+  function onReceive(event) {
+    const val = new TextDecoder().decode(event.target.value).trim();
+    if (val) log('<- ' + val, 'recv');
+  }
+
+  async function sendValue() {
+    const val = elValueInput.value.trim();
+    if (!val || !txChar) return;
+    try {
+      await txChar.writeValue(new TextEncoder().encode(val + '\n'));
+      log('-> ' + val, 'sent');
+      elValueInput.value = '';
+      elValueInput.focus();
+    } catch (err) {
+      log('Send failed: ' + err.message, 'err');
+    }
+  }
+
+  function validateSequence() {
+    const inc   = parseFloat(elIncrement.value);
+    const max   = parseFloat(elMaxValue.value);
+    const delay = parseFloat(elDelay.value);
+    if (!inc   || inc <= 0)        return 'Increment must be greater than 0';
+    if (!max   || max <= 0)        return 'Max value must be greater than 0';
+    if (isNaN(delay) || delay < 0) return 'Delay must be 0 or greater';
+    if (max % inc !== 0)           return 'Max value must be evenly divisible by increment';
+    return null;
+  }
+
+  function sleep(ms) {
+    if (ms <= 0) return new Promise(function (resolve) { setTimeout(resolve, 0); });
+    return new Promise(function (resolve) {
+      var tick = setInterval(function () { if (seqAbort) { clearInterval(tick); resolve(); } }, 50);
+      setTimeout(function () { clearInterval(tick); resolve(); }, ms);
+    });
+  }
+
+  async function runSequence() {
+    var error = validateSequence();
+    if (error) {
+      elSeqError.textContent = error;
+      elSeqError.classList.remove('hidden');
+      return;
+    }
+    elSeqError.classList.add('hidden');
+
+    var inc       = parseFloat(elIncrement.value);
+    var max       = parseFloat(elMaxValue.value);
+    var threshold = parseFloat(elThreshold.value) || 0;
+    var delayMs   = parseFloat(elDelay.value);
+
+    var forward = [];
+    for (var v = 0; v <= max; v += inc) forward.push(v);
+    var reverse = forward.slice(0, -1).reverse();
+    var full    = forward.concat(reverse);
+
+    seqRunning = true;
+    seqAbort   = false;
+    setSeqRunning(true);
+    elSeqProgress.classList.remove('hidden');
+
+    log('Sequence 0->' + max + ' (' + full.length + ' steps, +' + threshold + ' threshold, ' + delayMs + 'ms delay)', 'seq');
+
+    for (var i = 0; i < full.length; i++) {
+      if (seqAbort) break;
+
+      var isReturning = i >= forward.length;
+      var sent = (full[i] + threshold).toFixed(2);
+
+      elProgressFill.style.width  = ((i + 1) / full.length * 100) + '%';
+      elProgressFill.className    = 'ard-progress-fill' + (isReturning ? ' returning' : '');
+      elProgressLabel.textContent = isReturning ? 'Returning...' : 'Going up...';
+      elProgressStep.textContent  = (i + 1) + '/' + full.length;
+
+      try {
+        await txChar.writeValue(new TextEncoder().encode(sent + '\n'));
+        log('-> ' + sent + (isReturning ? '  return' : '  up'), 'sent');
+      } catch (err) {
+        log('Send failed: ' + err.message, 'err');
+        break;
+      }
+
+      if (i < full.length - 1 && !seqAbort) await sleep(delayMs);
+    }
+
+    log(seqAbort ? 'Sequence stopped.' : 'Sequence complete!', 'seq');
+
+    elProgressFill.style.width  = '0%';
+    elProgressFill.className    = 'ard-progress-fill';
+    elProgressLabel.textContent = 'Sequence progress';
+    elProgressStep.textContent  = '';
+    elSeqProgress.classList.add('hidden');
+
+    seqRunning = false;
+    seqAbort   = false;
+    setSeqRunning(false);
+  }
+
+  return {
+    id:    'arduino',
+    label: 'Arduino BT Controller',
+
+    init() {
+      elDeviceName    = document.getElementById('ard-device-name');
+      elBtnTest       = document.getElementById('ard-btn-test');
+      elBtnConnect    = document.getElementById('ard-btn-connect');
+      elStatusDot     = document.getElementById('ard-status-dot');
+      elCompatWarn    = document.getElementById('ard-compat-warn');
+      elValueInput    = document.getElementById('ard-value-input');
+      elBtnSend       = document.getElementById('ard-btn-send');
+      elIncrement     = document.getElementById('ard-increment');
+      elMaxValue      = document.getElementById('ard-max-value');
+      elThreshold     = document.getElementById('ard-threshold');
+      elDelay         = document.getElementById('ard-delay');
+      elSeqError      = document.getElementById('ard-seq-error');
+      elBtnStart      = document.getElementById('ard-btn-start');
+      elSeqProgress   = document.getElementById('ard-seq-progress');
+      elProgressFill  = document.getElementById('ard-progress-fill');
+      elProgressLabel = document.getElementById('ard-progress-label');
+      elProgressStep  = document.getElementById('ard-progress-step');
+      elLogBox        = document.getElementById('ard-log-box');
+      elBtnClearLog   = document.getElementById('ard-btn-clear-log');
+
+      if (!navigator.bluetooth) {
+        elCompatWarn.classList.remove('hidden');
+        elBtnConnect.disabled = true;
+        elBtnTest.disabled    = true;
+        log('Web Bluetooth not available. Use Chrome on desktop or Android.', 'err');
+      } else {
+        log('Ready. Enter device name and press CONNECT.', 'info');
+      }
+
+      elBtnTest.addEventListener('click', testConnection);
+
+      elBtnConnect.addEventListener('click', function () {
+        if (btDevice && btDevice.gatt.connected) disconnect();
+        else connect();
+      });
+
+      elValueInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') sendValue();
+      });
+      elBtnSend.addEventListener('click', sendValue);
+
+      elBtnStart.addEventListener('click', function () {
+        if (seqRunning) seqAbort = true;
+        else runSequence();
+      });
+
+      elBtnClearLog.addEventListener('click', function () {
+        while (elLogBox.firstChild) elLogBox.removeChild(elLogBox.firstChild);
+      });
+    },
+
+    mount() {
+      // BT connection persists across feature switches — nothing to restore
+    },
+
+    unmount() {
+      if (seqRunning) seqAbort = true;
+    },
+  };
+})());
