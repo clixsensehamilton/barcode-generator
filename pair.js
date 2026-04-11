@@ -29,7 +29,7 @@ function setStatus(msg, type) {
 // Commands from side panel
 port.onMessage.addListener(function (msg) {
   if (msg.type === 'send' && txChar) {
-    txChar.writeValueWithoutResponse(new TextEncoder().encode(msg.value + '\n'))
+    txChar.writeValue(new TextEncoder().encode(msg.value + '\n'))
       .catch(function (err) {
         port.postMessage({ type: 'error', message: err.message });
       });
