@@ -603,7 +603,9 @@ registerFeature((function () {
     if (!inc   || inc <= 0)        return 'Increment must be greater than 0';
     if (!max   || max <= 0)        return 'Max value must be greater than 0';
     if (isNaN(delay) || delay < 0) return 'Delay must be 0 or greater';
-    if (max % inc !== 0)           return 'Max value must be evenly divisible by increment';
+    const remainder = max % inc;
+    if (remainder > 1e-9 && (inc - remainder) > 1e-9)
+                                   return 'Max value must be evenly divisible by increment';
     return null;
   }
 
@@ -653,6 +655,7 @@ registerFeature((function () {
       elProgressStep.textContent  = (i + 1) + '/' + full.length;
 
       try {
+        if (!txChar) { seqAbort = true; break; }
         await txChar.writeValue(new TextEncoder().encode(sent + '\n'));
         log('-> ' + sent + (isReturning ? '  return' : '  up'), 'sent');
       } catch (err) {
