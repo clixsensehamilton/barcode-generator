@@ -1,3 +1,5 @@
+'use strict';
+
 // ============================================================
 // Shell — Feature Registry
 // ============================================================
@@ -27,8 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
   featureSelect.addEventListener('change', () => switchFeature(featureSelect.value));
   switchFeature('barcode');
 });
-
-'use strict';
 
 // ── Pin Icon SVGs (developer-controlled strings, not user data) ──────────
 const PIN_ICON_OFF = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.5 1.5L10.5 3.5L7.5 6.5L8 9L6 7L3 10L2 9L5 6L3 4L5.5 4.5L8.5 1.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
