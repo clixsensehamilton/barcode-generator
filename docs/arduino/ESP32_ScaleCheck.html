@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 BT Controller</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;600;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f2f2f0;
+    --surface: #ffffff;
+    --border: #d8d8d4;
+    --accent: #0077cc;
+    --accent2: #e63000;
+    --text: #1a1a1a;
+    --muted: #888880;
+    --success: #00994d;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow', sans-serif;
+    --shadow: 0 2px 16px rgba(0,0,0,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, #00000008 39px, #00000008 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, #00000008 39px, #00000008 40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .logo-block {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .logo-main {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: 36px;
+    line-height: 1;
+    letter-spacing: -1px;
+    color: #111;
+  }
+
+  .logo-main span {
+    color: var(--accent);
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    margin-bottom: 8px;
+    margin-left: auto;
+    transition: background 0.3s, box-shadow 0.3s;
+    flex-shrink: 0;
+  }
+
+  .status-dot.connected {
+    background: var(--success);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--success) 50%, transparent);
+    animation: pulse 2s infinite;
+  }
+
+  .status-dot.error {
+    background: var(--accent2);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent2) 50%, transparent);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 32px;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 40px; height: 2px;
+    background: var(--accent);
+  }
+
+  .btn-connect {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+
+  .btn-connect::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: translateX(-100%);
+    transition: transform 0.2s;
+    z-index: -1;
+  }
+
+  .btn-connect:hover::after { transform: translateX(0); }
+  .btn-connect:hover { color: #fff; }
+  .btn-connect:disabled { border-color: var(--border); color: var(--muted); cursor: not-allowed; }
+  .btn-connect:disabled::after { display: none; }
+
+  .btn-connect.connected {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-connect.connected::after { background: var(--accent2); }
+  .btn-connect.connected:hover { color: #fff; }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+
+  .send-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .input-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]:disabled { opacity: 0.4; cursor: not-allowed; }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  .btn-send {
+    align-self: flex-end;
+    padding: 12px 24px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 1px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .btn-send:hover { opacity: 0.85; }
+  .btn-send:active { transform: scale(0.97); }
+  .btn-send:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  /* ── Sequence section ─────────────────────────────────── */
+  .seq-section {
+    margin-top: 0;
+  }
+
+  .seq-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .select-wrap {
+    flex: 1;
+  }
+
+  select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888880' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    transition: border-color 0.2s;
+  }
+
+  select:focus { border-color: var(--accent); }
+  select:disabled { opacity: 0.4; cursor: not-allowed; }
+  select option[value=""] { color: var(--muted); }
+
+  .btn-start {
+    align-self: flex-end;
+    padding: 12px 24px;
+    background: var(--success);
+    border: none;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 2px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s, background 0.2s;
+    border-radius: 2px;
+    white-space: nowrap;
+    display: none;
+  }
+
+  .btn-start:hover { opacity: 0.85; }
+  .btn-start:active { transform: scale(0.97); }
+  .btn-start:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-start.running {
+    background: var(--accent2);
+    animation: runPulse 1s infinite;
+  }
+
+  @keyframes runPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Progress bar */
+  .seq-progress {
+    margin-top: 12px;
+    display: none;
+  }
+
+  .seq-progress.show { display: block; }
+
+  .progress-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--success);
+    border-radius: 2px;
+    transition: width 0.3s ease, background 0.3s;
+    width: 0%;
+  }
+
+  .progress-fill.returning {
+    background: var(--accent);
+  }
+
+  /* ── Log ─────────────────────────────────────────────── */
+  .log-section { margin-top: 28px; }
+
+  .log-header {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .log-clear {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .log-clear:hover { color: var(--accent2); }
+
+  .log-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px;
+    height: 160px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .log-entry {
+    display: flex;
+    gap: 10px;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+  }
+
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .log-time { color: var(--muted); flex-shrink: 0; }
+  .log-text { color: var(--text); word-break: break-all; }
+  .log-text.sent { color: var(--accent); }
+  .log-text.recv { color: var(--success); }
+  .log-text.info { color: var(--muted); font-style: italic; }
+  .log-text.err  { color: var(--accent2); }
+  .log-text.seq  { color: #9b59b6; }
+
+  .compat-warn {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent2);
+    background: #fff3f0;
+    border: 1px solid #e6300040;
+    border-radius: 2px;
+    padding: 10px 14px;
+    margin-top: 16px;
+    display: none;
+    line-height: 1.6;
+  }
+
+  .compat-warn.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="logo-block">
+      <div class="logo-main">TIMBANGIN <span> MO</span></div>
+      <div class="logo-sub">SHEEEESSHHHHH!!!</div>
+    </div>
+    <div class="status-dot" id="statusDot"></div>
+  </div>
+
+  <div class="card">
+    <button class="btn-connect" id="btnConnect" onclick="toggleConnection()">
+      ⬡ Connect muna dito >>> <b>ESP32_WS</b>
+    </button>
+
+    <div id="compatWarn" class="compat-warn">
+      ⚠ Web Bluetooth requires Chrome or Edge on desktop/Android. Not supported in Firefox or Safari.
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Manual send -->
+    <label class="input-label">Value to Send</label>
+    <div class="send-row">
+      <div class="input-wrap">
+        <input type="text" id="valueInput" placeholder="Enter value..." disabled
+               onkeydown="if(event.key==='Enter') sendValue()">
+      </div>
+      <button class="btn-send" id="btnSend" onclick="sendValue()" disabled>SEND</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Sequence -->
+    <div class="seq-section">
+      <label class="input-label">Sequence Mode</label>
+      <div class="seq-row">
+        <div class="select-wrap">
+          <select id="seqSelect" disabled onchange="onSelectChange()">
+            <option value="">— Select target value —</option>
+            <option value="75">75.00</option>
+            <option value="150">150.00</option>
+          </select>
+        </div>
+        <button class="btn-start" id="btnStart" onclick="toggleSequence()">START!</button>
+      </div>
+
+      <div class="seq-progress" id="seqProgress">
+        <div class="progress-label">
+          <span id="progressLabel">Sequence progress</span>
+          <span id="progressStep"></span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <span>activity log</span>
+        <button class="log-clear" onclick="clearLog()">CLEAR</button>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const NUS_SERVICE = '6e400001-b5b4-f393-e0a9-e50e24dcca9e';
+  const NUS_TX_CHAR = '6e400002-b5b4-f393-e0a9-e50e24dcca9e';
+  const NUS_RX_CHAR = '6e400003-b5b4-f393-e0a9-e50e24dcca9e';
+  const DELAY_MS    = 3500;
+
+  let btDevice = null, txChar = null;
+  let seqRunning = false, seqAbort = false;
+
+  // Sequences
+  const SEQUENCES = {
+    75:  [0, 25, 50, 75],
+    150: [0, 25, 50, 75, 100, 125, 150]
+  };
+
+  window.addEventListener('load', () => {
+    if (!navigator.bluetooth) {
+      document.getElementById('compatWarn').classList.add('show');
+      log('Hala hindi pwede gamitin dito ih.', 'err');
+      log('Gamit ka Chrome para goods.', 'info');
+    } else {
+      log('Ready na?. Connect ka muna sa ESP32_WS na bluetooth sa phone.', 'info');
+    }
+  });
+
+  // ── Connection ────────────────────────────────────────────
+
+  async function toggleConnection() {
+    if (btDevice && btDevice.gatt.connected) {
+      btDevice.gatt.disconnect();
+    } else {
+      await connect();
+    }
+  }
+
+  async function connect() {
+    try {
+      log('Wait lang puuu...', 'info');
+      btDevice = await navigator.bluetooth.requestDevice({
+        filters: [{ name: 'ESP32_WS' }],
+        optionalServices: [NUS_SERVICE]
+      });
+
+      btDevice.addEventListener('gattserverdisconnected', onDisconnected);
+      const server = await btDevice.gatt.connect();
+      log('Oki na, connected na. Discovering services lang saglit...', 'info');
+
+      const service = await server.getPrimaryService(NUS_SERVICE);
+      txChar = await service.getCharacteristic(NUS_TX_CHAR);
+
+      try {
+        const rxChar = await service.getCharacteristic(NUS_RX_CHAR);
+        await rxChar.startNotifications();
+        rxChar.addEventListener('characteristicvaluechanged', onReceive);
+      } catch(e) {}
+
+      setConnected(true);
+      log(`Connected to ${btDevice.name}`, 'recv');
+
+    } catch (err) {
+      if (err.name !== 'NotFoundError') {
+        log('Error: ' + err.message, 'err');
+      } else {
+        log('Di ka pa naka-connect, pinindot mo yong cancel ih.', 'info');
+      }
+      setConnected(false);
+    }
+  }
+
+  function onDisconnected() {
+    seqAbort = true;
+    setConnected(false);
+    log('Na-disconnect ngani.', 'err');
+    txChar = null;
+  }
+
+  function onReceive(event) {
+    const decoder = new TextDecoder();
+    const val = decoder.decode(event.target.value).trim();
+    if (val) log('← ' + val, 'recv');
+  }
+
+  // ── Manual send ───────────────────────────────────────────
+
+  async function sendValue() {
+    const input = document.getElementById('valueInput');
+    const val = input.value.trim();
+    if (!val) return;
+    if (!txChar) { log('Di ka naka-connect ih.', 'err'); return; }
+
+    try {
+      const encoder = new TextEncoder();
+      await txChar.writeValue(encoder.encode(val + '\n'));
+      log('→ ' + val, 'sent');
+      input.value = '';
+      input.focus();
+    } catch (err) {
+      log('Failed ngani: ' + err.message, 'err');
+    }
+  }
+
+  // ── Sequence ──────────────────────────────────────────────
+
+  function onSelectChange() {
+    const sel = document.getElementById('seqSelect');
+    const btn = document.getElementById('btnStart');
+    btn.style.display = sel.value ? 'block' : 'none';
+  }
+
+  async function toggleSequence() {
+    if (seqRunning) {
+      seqAbort = true;
+      return;
+    }
+    await runSequence();
+  }
+
+  async function runSequence() {
+    const sel = document.getElementById('seqSelect');
+    const target = parseInt(sel.value);
+    const steps = SEQUENCES[target];
+    if (!steps) return;
+    if (!txChar) { log('Di ka naka-connect ih.', 'err'); return; }
+
+    // Build full sequence: forward then reverse (excluding last element repeated)
+    const forward = [...steps];
+    const reverse = [...steps].slice(0, -1).reverse();
+    const full = [...forward, ...reverse];
+
+    seqRunning = true;
+    seqAbort = false;
+    setSeqRunning(true);
+
+    const progressEl   = document.getElementById('seqProgress');
+    const fillEl       = document.getElementById('progressFill');
+    const labelEl      = document.getElementById('progressLabel');
+    const stepEl       = document.getElementById('progressStep');
+    progressEl.classList.add('show');
+
+    log(`▶ Starting ${target}.00 sequence (${full.length} steps, ${DELAY_MS}ms delay)`, 'seq');
+
+    for (let i = 0; i < full.length; i++) {
+      if (seqAbort) break;
+
+      const val = full[i].toFixed(2);
+      const isReturning = i >= forward.length;
+
+      // Update progress bar
+      const pct = ((i + 1) / full.length) * 100;
+      fillEl.style.width = pct + '%';
+      fillEl.classList.toggle('returning', isReturning);
+      labelEl.textContent = isReturning ? 'Returning...' : 'Going up...';
+      stepEl.textContent  = `${i + 1}/${full.length}`;
+
+      // Send
+      try {
+        const encoder = new TextEncoder();
+        await txChar.writeValue(encoder.encode(val + '\n'));
+        log(`→ ${val}${isReturning ? '  ↩' : '  ↑'}`, 'sent');
+      } catch (err) {
+        log('Send failed: ' + err.message, 'err');
+        break;
+      }
+
+      // Wait (skip delay after last step)
+      if (i < full.length - 1 && !seqAbort) {
+        await sleep(DELAY_MS);
+      }
+    }
+
+    if (seqAbort) {
+      log('⏹ Sequence stopped.', 'info');
+    } else {
+      log(`✓ Sequence done!`, 'seq');
+    }
+
+    fillEl.style.width = '0%';
+    fillEl.classList.remove('returning');
+    labelEl.textContent = 'Sequence progress';
+    stepEl.textContent  = '';
+    progressEl.classList.remove('show');
+
+    seqRunning = false;
+    seqAbort   = false;
+    setSeqRunning(false);
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => {
+      const timer = setInterval(() => {
+        if (seqAbort) { clearInterval(timer); resolve(); }
+      }, 50);
+      setTimeout(() => { clearInterval(timer); resolve(); }, ms);
+    });
+  }
+
+  // ── UI State ──────────────────────────────────────────────
+
+  function setConnected(state) {
+    const dot  = document.getElementById('statusDot');
+    const btn  = document.getElementById('btnConnect');
+    const inp  = document.getElementById('valueInput');
+    const send = document.getElementById('btnSend');
+    const sel  = document.getElementById('seqSelect');
+
+    dot.className  = 'status-dot' + (state ? ' connected' : '');
+    btn.className  = 'btn-connect' + (state ? ' connected' : '');
+    btn.textContent = state ? '⬡ Click mo lang pag ayaw mo na' : ' ⬡ Connect muna dito >>> ESP32_WS';
+    inp.disabled   = !state;
+    send.disabled  = !state;
+    sel.disabled   = !state;
+
+    if (!state) {
+      document.getElementById('btnStart').style.display = 'none';
+      sel.value = '';
+      if (seqRunning) { seqAbort = true; seqRunning = false; setSeqRunning(false); }
+    }
+    if (state) inp.focus();
+  }
+
+  function setSeqRunning(running) {
+    const btn  = document.getElementById('btnStart');
+    const sel  = document.getElementById('seqSelect');
+    const send = document.getElementById('btnSend');
+    const inp  = document.getElementById('valueInput');
+
+    btn.textContent = running ? 'STOP' : 'START!';
+    btn.classList.toggle('running', running);
+    sel.disabled  = running;
+    send.disabled = running;
+    inp.disabled  = running;
+    document.getElementById('btnConnect').disabled = running;
+  }
+
+  // ── Log ───────────────────────────────────────────────────
+
+  function log(msg, type = 'info') {
+    const box = document.getElementById('logBox');
+    const now = new Date();
+    const time = now.toTimeString().split(' ')[0];
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-time">${time}</span><span class="log-text ${type}">${escHtml(msg)}</span>`;
+    box.appendChild(entry);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById('logBox').innerHTML = '';
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
