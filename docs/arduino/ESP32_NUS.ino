@@ -44,7 +44,7 @@ class TxCallbacks : public BLECharacteristicCallbacks {
     String val = c->getValue().c_str();
     if (val.length() == 0) return;
 
-    Serial.println("[RX] " + val);
+    Serial.println(val);
 
     // ----------------------------------------------------------------
     // TODO: act on the received value here.
