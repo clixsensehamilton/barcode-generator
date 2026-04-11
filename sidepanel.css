@@ -595,3 +595,255 @@ body {
   padding: 0;
   pointer-events: none;
 }
+
+/* ============================================================
+   Feature Sections — layout container for each feature panel
+   ============================================================ */
+
+section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  flex: 1;
+  min-height: 0; /* allows inner overflow-y: auto to work */
+}
+
+/* ============================================================
+   Feature Selector Dropdown
+   ============================================================ */
+
+.feature-select-wrap { flex-shrink: 0; }
+
+.feature-select {
+  width: 100%;
+  background: var(--c-raised);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  color: var(--c-text);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 9px 32px 9px 11px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23505050' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  transition: border-color 0.18s;
+}
+
+.feature-select:focus {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px var(--c-accent-lo);
+}
+
+.feature-select option { background: var(--c-surface); color: var(--c-text); }
+
+/* ============================================================
+   Arduino BT Controller Feature
+   ============================================================ */
+
+.ard-panel { display: flex; flex-direction: column; gap: 10px; }
+
+.ard-config-row { display: flex; gap: 8px; align-items: flex-end; }
+
+.ard-field-group { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+
+.ard-input {
+  width: 100%;
+  background: var(--c-raised);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  color: var(--c-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 9px 11px;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  caret-color: var(--c-accent);
+}
+
+.ard-input:focus { border-color: var(--c-accent); box-shadow: 0 0 0 3px var(--c-accent-lo); }
+.ard-input:disabled { opacity: 0.4; cursor: not-allowed; }
+.ard-input::placeholder { color: var(--c-muted); font-family: var(--font-ui); }
+.ard-input[type="number"]::-webkit-inner-spin-button,
+.ard-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+.ard-input[type="number"] { -moz-appearance: textfield; }
+
+.ard-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  color: var(--c-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+.ard-btn-secondary:hover:not(:disabled) { border-color: var(--c-accent); color: var(--c-accent); }
+.ard-btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.ard-compat-warn {
+  font-size: 11px;
+  color: var(--c-err);
+  background: var(--c-err-lo);
+  border-left: 2px solid var(--c-err);
+  border-radius: 0 4px 4px 0;
+  padding: 7px 11px;
+  line-height: 1.5;
+}
+
+.ard-connect-row { display: flex; align-items: center; gap: 10px; }
+
+.ard-status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--c-muted);
+  flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.ard-status-dot.connected {
+  background: #00cc66;
+  box-shadow: 0 0 8px rgba(0, 204, 102, 0.55);
+  animation: ardPulse 2s infinite;
+}
+.ard-status-dot.error { background: var(--c-err); box-shadow: 0 0 8px rgba(255, 76, 76, 0.55); }
+
+@keyframes ardPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.ard-btn-connect {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--c-accent);
+  border-radius: var(--radius);
+  color: var(--c-accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.ard-btn-connect:hover:not(:disabled) { background: var(--c-accent-lo); }
+.ard-btn-connect.connected { border-color: var(--c-err); color: var(--c-err); }
+.ard-btn-connect.connected:hover:not(:disabled) { background: var(--c-err-lo); }
+.ard-btn-connect:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.ard-divider { height: 1px; background: var(--c-border); margin: 2px 0; }
+
+.ard-send-row { display: flex; gap: 8px; }
+
+.ard-btn-send {
+  background: var(--c-accent);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--c-bg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: opacity 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ard-btn-send:hover:not(:disabled) { opacity: 0.85; }
+.ard-btn-send:disabled { opacity: 0.25; cursor: not-allowed; }
+
+.ard-seq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.ard-seq-error {
+  font-size: 11px;
+  color: var(--c-err);
+  background: var(--c-err-lo);
+  border-left: 2px solid var(--c-err);
+  border-radius: 0 4px 4px 0;
+  padding: 7px 11px;
+}
+
+.ard-btn-start {
+  width: 100%;
+  background: #00cc66;
+  border: none;
+  border-radius: var(--radius);
+  color: #000;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 11px;
+  cursor: pointer;
+  transition: opacity 0.18s;
+}
+.ard-btn-start:hover:not(:disabled) { opacity: 0.85; }
+.ard-btn-start:disabled { opacity: 0.30; cursor: not-allowed; }
+.ard-btn-start.running { background: var(--c-err); color: #fff; animation: ardRunPulse 1s infinite; }
+
+@keyframes ardRunPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+
+.ard-seq-progress { display: flex; flex-direction: column; gap: 5px; }
+
+.ard-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--c-muted);
+  letter-spacing: 0.05em;
+}
+
+.ard-progress-track { height: 3px; background: var(--c-border); border-radius: 2px; overflow: hidden; }
+
+.ard-progress-fill {
+  height: 100%;
+  background: #00cc66;
+  border-radius: 2px;
+  transition: width 0.3s ease, background 0.3s;
+  width: 0%;
+}
+.ard-progress-fill.returning { background: var(--c-accent); }
+
+.ard-log-header { display: flex; justify-content: space-between; align-items: center; }
+
+.ard-btn-clear-log {
+  background: none; border: none;
+  color: var(--c-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color 0.18s;
+  padding: 0;
+}
+.ard-btn-clear-log:hover { color: var(--c-err); }
+
+.ard-log-box {
+  background: var(--c-raised);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 10px;
+  height: 150px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.7;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border) transparent;
+}
+
+.ard-log-entry { display: flex; gap: 8px; }
+.ard-log-time  { color: var(--c-muted); flex-shrink: 0; }
+.ard-log-sent  { color: var(--c-accent); }
+.ard-log-recv  { color: #00cc66; }
+.ard-log-info  { color: var(--c-muted); font-style: italic; }
+.ard-log-err   { color: var(--c-err); }
+.ard-log-seq   { color: #b08aff; }
