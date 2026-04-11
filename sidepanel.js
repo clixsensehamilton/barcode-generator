@@ -60,6 +60,7 @@ const VALIDATORS = {
   EAN8:    v => ({ valid: /^\d{8}$/.test(v),                              hint: 'Exactly 8 digits required' }),
   UPCA:    v => ({ valid: /^\d{12}$/.test(v),                             hint: 'Exactly 12 digits required' }),
   CODE39:  v => ({ valid: v.length > 0 && /^[A-Z0-9 \-.$\/+%*]+$/.test(v), hint: 'A–Z, 0–9, and  - . $ / + % *  only' }),
+  ITF14:   v => ({ valid: /^\d{14}$/.test(v),                              hint: 'Exactly 14 digits required' }),
 };
 
 // Format-specific input hints
@@ -70,6 +71,7 @@ const PLACEHOLDERS = {
   EAN8:    '8 digits  e.g. 96385074',
   UPCA:    '12 digits  e.g. 012345678905',
   CODE39:  'A–Z / 0–9  e.g. HELLO-WORLD',
+  ITF14:   '14 digits  e.g. 00012345678905',
 };
 
 // ── DOM Refs ───────────────────────────────────────────────
@@ -632,7 +634,7 @@ registerFeature((function () {
     var delayMs   = parseFloat(elDelay.value);
 
     var forward = [];
-    for (var v = 0; v <= max; v += inc) forward.push(v);
+    for (var i = 0; i * inc <= max + 1e-9; i++) forward.push(+(i * inc).toFixed(10));
     var reverse = forward.slice(0, -1).reverse();
     var full    = forward.concat(reverse);
 
