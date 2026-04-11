@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BLE Pairing</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 20px;
+      width: 340px;
+    }
+    h2 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    #device-label { font-size: 17px; font-weight: 600; margin-bottom: 20px; color: #fff; }
+    button {
+      width: 100%; padding: 11px; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.15s;
+    }
+    #btn-pair { background: #4a90d9; color: #fff; }
+    #btn-pair:hover:not(:disabled) { background: #357abd; }
+    #btn-pair:disabled { background: #333; color: #666; cursor: default; }
+    #btn-pair.connected { background: #c0392b; }
+    #btn-pair.connected:hover { background: #a93226; }
+    .status {
+      margin-top: 14px; font-size: 13px; color: #888;
+      min-height: 18px; line-height: 1.4;
+    }
+    .status.ok  { color: #4caf50; }
+    .status.err { color: #f44336; }
+  </style>
+</head>
+<body>
+  <h2>Bluetooth Pairing</h2>
+  <div id="device-label">—</div>
+  <button id="btn-pair">Pair Device</button>
+  <div class="status" id="status"></div>
+  <script src="pair.js"></script>
+</body>
+</html>

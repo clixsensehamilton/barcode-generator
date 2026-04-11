@@ -436,15 +436,9 @@ registerFeature({
 // ============================================================
 
 registerFeature((function () {
-  const NUS_SERVICE = '6e400001-b5b4-f393-e0a9-e50e24dcca9e';
-  const NUS_TX_CHAR = '6e400002-b5b4-f393-e0a9-e50e24dcca9e';
-  const NUS_RX_CHAR = '6e400003-b5b4-f393-e0a9-e50e24dcca9e';
-
-  let btDevice            = null;
-  let txChar              = null;
-  let seqRunning          = false;
-  let seqAbort            = false;
-  let intentionalDisconn  = false; // true when user clicks DISCONNECT
+  let pairPort   = null; // port to the pair.html popup
+  let seqRunning = false;
+  let seqAbort   = false;
 
   // DOM refs — assigned in init()
   let elDeviceName, elBtnTest, elBtnConnect, elStatusDot, elCompatWarn;
@@ -504,98 +498,30 @@ registerFeature((function () {
     elBtnConnect.disabled = running;
   }
 
-  async function testConnection() {
-    const name = elDeviceName.value.trim() || 'ESP32_WS';
-    elBtnTest.disabled = true;
-    log('Testing connection to ' + name + '...', 'info');
-    try {
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [{ name }],
-        optionalServices: [NUS_SERVICE],
-      });
-      await device.gatt.connect();
-      log('Connected to ' + device.name, 'recv');
-      device.gatt.disconnect();
-      log('Test complete — disconnected', 'info');
-    } catch (err) {
-      if (err.name !== 'NotFoundError') log('Test failed: ' + err.message, 'err');
-      else log('Test cancelled.', 'info');
-    } finally {
-      elBtnTest.disabled = false;
-    }
-  }
-
-  async function connect() {
-    const name = elDeviceName.value.trim() || 'ESP32_WS';
+  function connect() {
+    const name = elDeviceName.value.trim() || 'EB The Best';
     elBtnConnect.disabled = true;
-    log('Connecting to ' + name + '...', 'info');
-    try {
-      btDevice = await navigator.bluetooth.requestDevice({
-        filters: [{ name }],
-        optionalServices: [NUS_SERVICE],
-      });
-      btDevice.addEventListener('gattserverdisconnected', onDisconnected);
-      const server  = await btDevice.gatt.connect();
-      log('Connected. Discovering services...', 'info');
-      const service = await server.getPrimaryService(NUS_SERVICE);
-      txChar = await service.getCharacteristic(NUS_TX_CHAR);
-      try {
-        const rxChar = await service.getCharacteristic(NUS_RX_CHAR);
-        await rxChar.startNotifications();
-        rxChar.addEventListener('characteristicvaluechanged', onReceive);
-      } catch (_) { /* RX notifications optional */ }
-      setConnected(true);
-      log('Ready — connected to ' + btDevice.name, 'recv');
-    } catch (err) {
-      if (err.name !== 'NotFoundError') {
-        log('Connection error: ' + err.message, 'err');
-        setConnected(false, true); // show error dot state
-      } else {
-        log('Connection cancelled.', 'info');
-        setConnected(false);
-      }
-      btDevice = null;
-      txChar   = null;
-      elBtnConnect.disabled = false;
-    }
+    log('Opening Bluetooth pairing window for ' + name + '...', 'info');
+    const url = chrome.runtime.getURL('pair.html') + '?device=' + encodeURIComponent(name);
+    chrome.tabs.create({ url: url, active: true });
   }
 
   function disconnect() {
-    if (btDevice && btDevice.gatt.connected) {
-      intentionalDisconn = true;
-      btDevice.gatt.disconnect();
+    if (pairPort) {
+      pairPort.postMessage({ type: 'disconnect' });
+      pairPort = null;
     }
-  }
-
-  function onDisconnected() {
-    const wasIntentional = intentionalDisconn;
-    intentionalDisconn = false;
-    seqAbort = true;
-    txChar   = null;
     setConnected(false);
-    if (wasIntentional) {
-      log('Disconnected.', 'info');
-    } else {
-      log('Disconnected unexpectedly.', 'err');
-    }
+    log('Disconnecting...', 'info');
   }
 
-  function onReceive(event) {
-    const val = new TextDecoder().decode(event.target.value).trim();
-    if (val) log('<- ' + val, 'recv');
-  }
-
-  async function sendValue() {
+  function sendValue() {
     const val = elValueInput.value.trim();
-    if (!val || !txChar) return;
-    try {
-      await txChar.writeValue(new TextEncoder().encode(val + '\n'));
-      log('-> ' + val, 'sent');
-      elValueInput.value = '';
-      elValueInput.focus();
-    } catch (err) {
-      log('Send failed: ' + err.message, 'err');
-    }
+    if (!val || !pairPort) return;
+    pairPort.postMessage({ type: 'send', value: val });
+    log('-> ' + val, 'sent');
+    elValueInput.value = '';
+    elValueInput.focus();
   }
 
   function validateSequence() {
@@ -636,7 +562,7 @@ registerFeature((function () {
     var forward = [];
     for (var i = 0; i * inc <= max + 1e-9; i++) forward.push(+(i * inc).toFixed(10));
     var reverse = forward.slice(0, -1).reverse();
-    var full    = forward.concat(reverse);
+    var full    = forward.concat([forward[forward.length - 1]]).concat(reverse);
 
     seqRunning = true;
     seqAbort   = false;
@@ -656,14 +582,9 @@ registerFeature((function () {
       elProgressLabel.textContent = isReturning ? 'Returning...' : 'Going up...';
       elProgressStep.textContent  = (i + 1) + '/' + full.length;
 
-      try {
-        if (!txChar) { seqAbort = true; break; }
-        await txChar.writeValue(new TextEncoder().encode(sent + '\n'));
-        log('-> ' + sent + (isReturning ? '  return' : '  up'), 'sent');
-      } catch (err) {
-        log('Send failed: ' + err.message, 'err');
-        break;
-      }
+      if (!pairPort) { seqAbort = true; break; }
+      pairPort.postMessage({ type: 'send', value: sent });
+      log('-> ' + sent + (isReturning ? '  return' : '  up'), 'sent');
 
       if (i < full.length - 1 && !seqAbort) await sleep(delayMs);
     }
@@ -715,11 +636,54 @@ registerFeature((function () {
         log('Ready. Enter device name and press CONNECT.', 'info');
       }
 
-      elBtnTest.addEventListener('click', testConnection);
+      // TEST button opens the same pairing popup
+      elBtnTest.addEventListener('click', function () {
+        connect();
+      });
 
       elBtnConnect.addEventListener('click', function () {
-        if (btDevice && btDevice.gatt.connected) disconnect();
+        if (pairPort) disconnect();
         else connect();
+      });
+
+      // Messages from pair.html popup
+      chrome.runtime.onConnect.addListener(function (port) {
+        if (port.name !== 'ble-pair') return;
+        pairPort = port;
+        port.onMessage.addListener(function (msg) {
+          switch (msg.type) {
+            case 'connected':
+              setConnected(true);
+              log('Ready — connected to ' + msg.name, 'recv');
+              break;
+            case 'recv':
+              log('<- ' + msg.value, 'recv');
+              break;
+            case 'disconnected':
+              pairPort = null;
+              setConnected(false);
+              log('Disconnected unexpectedly.', 'err');
+              elBtnConnect.disabled = false;
+              break;
+            case 'cancelled':
+              pairPort = null;
+              setConnected(false);
+              log('Pairing cancelled.', 'info');
+              elBtnConnect.disabled = false;
+              break;
+            case 'error':
+              log('BLE error: ' + msg.message, 'err');
+              break;
+          }
+        });
+        port.onDisconnect.addListener(function () {
+          if (pairPort === port) {
+            pairPort = null;
+            setConnected(false);
+            log('Pairing window closed.', 'info');
+            elBtnConnect.disabled = false;
+          }
+        });
       });
 
       elValueInput.addEventListener('keydown', function (e) {
