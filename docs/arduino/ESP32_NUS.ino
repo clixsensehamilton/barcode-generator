@@ -6,7 +6,7 @@
 //
 // Board:   ESP32 Dev Module (Tools > Board > esp32 > ESP32 Dev Module)
 // Port:    Select the COM port showing CH340
-// Baud:    115200
+// Baud:    9600
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -65,7 +65,7 @@ class TxCallbacks : public BLECharacteristicCallbacks {
 // Setup
 // -------------------------------------------------------------------
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   Serial.println("[BLE] Initialising...");
 
   BLEDevice::init(DEVICE_NAME);
