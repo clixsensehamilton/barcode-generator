@@ -438,10 +438,11 @@ registerFeature((function () {
   const NUS_TX_CHAR = '6e400002-b5b4-f393-e0a9-e50e24dcca9e';
   const NUS_RX_CHAR = '6e400003-b5b4-f393-e0a9-e50e24dcca9e';
 
-  let btDevice   = null;
-  let txChar     = null;
-  let seqRunning = false;
-  let seqAbort   = false;
+  let btDevice            = null;
+  let txChar              = null;
+  let seqRunning          = false;
+  let seqAbort            = false;
+  let intentionalDisconn  = false; // true when user clicks DISCONNECT
 
   // DOM refs — assigned in init()
   let elDeviceName, elBtnTest, elBtnConnect, elStatusDot, elCompatWarn;
@@ -469,8 +470,8 @@ registerFeature((function () {
     elLogBox.scrollTop = elLogBox.scrollHeight;
   }
 
-  function setConnected(state) {
-    elStatusDot.className = 'ard-status-dot' + (state ? ' connected' : '');
+  function setConnected(state, isError) {
+    elStatusDot.className = 'ard-status-dot' + (state ? ' connected' : (isError ? ' error' : ''));
     elBtnConnect.textContent = state ? 'DISCONNECT' : 'CONNECT';
     elBtnConnect.classList.toggle('connected', state);
     elBtnTest.disabled    = state;
@@ -513,7 +514,7 @@ registerFeature((function () {
       await device.gatt.connect();
       log('Connected to ' + device.name, 'recv');
       device.gatt.disconnect();
-      log('Test complete — disconnected.', 'info');
+      log('Test complete — disconnected', 'info');
     } catch (err) {
       if (err.name !== 'NotFoundError') log('Test failed: ' + err.message, 'err');
       else log('Test cancelled.', 'info');
@@ -524,6 +525,7 @@ registerFeature((function () {
 
   async function connect() {
     const name = elDeviceName.value.trim() || 'ESP32_WS';
+    elBtnConnect.disabled = true;
     log('Connecting to ' + name + '...', 'info');
     try {
       btDevice = await navigator.bluetooth.requestDevice({
@@ -543,23 +545,37 @@ registerFeature((function () {
       setConnected(true);
       log('Ready — connected to ' + btDevice.name, 'recv');
     } catch (err) {
-      if (err.name !== 'NotFoundError') log('Connection error: ' + err.message, 'err');
-      else log('Connection cancelled.', 'info');
+      if (err.name !== 'NotFoundError') {
+        log('Connection error: ' + err.message, 'err');
+        setConnected(false, true); // show error dot state
+      } else {
+        log('Connection cancelled.', 'info');
+        setConnected(false);
+      }
       btDevice = null;
       txChar   = null;
-      setConnected(false);
+      elBtnConnect.disabled = false;
     }
   }
 
   function disconnect() {
-    if (btDevice && btDevice.gatt.connected) btDevice.gatt.disconnect();
+    if (btDevice && btDevice.gatt.connected) {
+      intentionalDisconn = true;
+      btDevice.gatt.disconnect();
+    }
   }
 
   function onDisconnected() {
+    const wasIntentional = intentionalDisconn;
+    intentionalDisconn = false;
     seqAbort = true;
     txChar   = null;
     setConnected(false);
-    log('Disconnected.', 'err');
+    if (wasIntentional) {
+      log('Disconnected.', 'info');
+    } else {
+      log('Disconnected unexpectedly.', 'err');
+    }
   }
 
   function onReceive(event) {
