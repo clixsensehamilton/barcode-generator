@@ -1,3 +1,33 @@
+// ============================================================
+// Shell — Feature Registry
+// ============================================================
+
+const FEATURES = [];
+let activeFeature = null;
+
+function registerFeature(feature) {
+  FEATURES.push(feature);
+}
+
+function switchFeature(id) {
+  if (activeFeature) {
+    activeFeature.unmount();
+    document.getElementById('feature-' + activeFeature.id).classList.add('hidden');
+  }
+  const feature = FEATURES.find(f => f.id === id);
+  if (!feature) return;
+  document.getElementById('feature-' + id).classList.remove('hidden');
+  feature.mount();
+  activeFeature = feature;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  FEATURES.forEach(f => f.init());
+  const featureSelect = document.getElementById('feature-select');
+  featureSelect.addEventListener('change', () => switchFeature(featureSelect.value));
+  switchFeature('barcode');
+});
+
 'use strict';
 
 // ── Pin Icon SVGs (developer-controlled strings, not user data) ──────────
@@ -342,63 +372,63 @@ function downloadBarcodePNG() {
   img.src = url;
 }
 
-// ── Event Listeners ────────────────────────────────────────
-btnQr.addEventListener('click', () => setMode('qr'));
-btnBarcode.addEventListener('click', () => setMode('barcode'));
+// ============================================================
+// Feature: Barcode Generator
+// ============================================================
 
-formatSelect.addEventListener('change', () => {
-  currentFormat = formatSelect.value;
-  valueInput.placeholder = PLACEHOLDERS[currentFormat];
-  clearOutput();
-  clearError();
-});
+registerFeature({
+  id: 'barcode',
+  label: 'Barcode Generator',
 
-// Enter key → immediate generate
-valueInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
+  init() {
+    btnQr.addEventListener('click', () => setMode('qr'));
+    btnBarcode.addEventListener('click', () => setMode('barcode'));
+
+    formatSelect.addEventListener('change', () => {
+      currentFormat = formatSelect.value;
+      valueInput.placeholder = PLACEHOLDERS[currentFormat];
+      clearOutput();
+      clearError();
+    });
+
+    valueInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { clearTimeout(debounceTimer); generate(); }
+    });
+
+    valueInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      clearError();
+      if (!valueInput.value) { clearOutput(); return; }
+      debounceTimer = setTimeout(generate, 3000);
+    });
+
+    genBtn.addEventListener('click', () => { clearTimeout(debounceTimer); generate(); });
+
+    sizeSlider.addEventListener('input', () => {
+      currentScale = parseInt(sizeSlider.value, 10);
+      sliderBadge.textContent = SCALE[currentScale].label;
+      if (hasOutput) { clearTimeout(debounceTimer); generate(); }
+    });
+
+    dlBtn.addEventListener('click', downloadPNG);
+
+    historyHeader.addEventListener('click', function () {
+      const collapsed = historySection.classList.toggle('collapsed');
+      document.getElementById('history-chevron').setAttribute('aria-pressed', String(!collapsed));
+    });
+  },
+
+  mount() {
+    setMode('qr');
+    sliderBadge.textContent = SCALE[currentScale].label;
+    valueInput.focus();
+  },
+
+  unmount() {
     clearTimeout(debounceTimer);
-    generate();
-  }
+  },
 });
 
-// Typing → 3-second debounce
-valueInput.addEventListener('input', () => {
-  clearTimeout(debounceTimer);
-  clearError();
-
-  if (!valueInput.value) {
-    clearOutput();
-    return;
-  }
-
-  debounceTimer = setTimeout(generate, 3000);
-});
-
-// Generate button → immediate
-genBtn.addEventListener('click', () => {
-  clearTimeout(debounceTimer);
-  generate();
-});
-
-// Size slider → regenerate if output exists
-sizeSlider.addEventListener('input', () => {
-  currentScale = parseInt(sizeSlider.value, 10);
-  sliderBadge.textContent = SCALE[currentScale].label;
-
-  if (hasOutput) {
-    clearTimeout(debounceTimer);
-    generate();
-  }
-});
-
-dlBtn.addEventListener('click', downloadPNG);
-
-historyHeader.addEventListener('click', function () {
-  const collapsed = historySection.classList.toggle('collapsed');
-  document.getElementById('history-chevron').setAttribute('aria-pressed', String(!collapsed));
-});
-
-// ── Init ───────────────────────────────────────────────────
-setMode('qr');
-sliderBadge.textContent = SCALE[currentScale].label;
-valueInput.focus();
+// ============================================================
+// Feature: Arduino BT Controller — added in Task 6
+// ============================================================
