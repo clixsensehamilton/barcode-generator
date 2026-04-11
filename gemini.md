@@ -29,6 +29,16 @@
 - The scanner reads the code off the screen and outputs the decoded text into whatever input field is focused in the browser or OS
 - The side panel does NOT close when the user clicks elsewhere — this is the core UX benefit
 
+### Feature: Arduino BT Controller
+- User selects "Arduino BT Controller" from the feature dropdown
+- User enters a Bluetooth device name (default: ESP32_WS) and can test the connection
+- User connects to an ESP32 via Web Bluetooth (Nordic UART Service)
+- Manual send: user types a value and sends it as plain text over BLE
+- Sequence mode: user sets Increment, Max Value, Threshold, and Delay (ms)
+  - Steps: [0, inc, 2*inc, ... max] forward then reverse
+  - Each value sent = step + threshold; validates max % increment === 0 before running
+- Activity log shows timestamped sent/received/error entries (DOM API only)
+
 ### NOT in scope
 - Camera scanning (no getUserMedia)
 - Decoding/reading barcodes via software
@@ -84,11 +94,14 @@ barcode-generator/
 ├── background.js          # Service worker — opens side panel on action click
 ├── sidepanel.html         # Side panel UI
 ├── sidepanel.css          # Styles
-├── sidepanel.js           # All UI logic
+├── sidepanel.js           # All UI logic — shell (feature registry) + barcode feature + arduino feature
 ├── icons/                 # 16, 48, 128px PNG icons
 ├── libs/
 │   ├── jsbarcode.min.js   # Barcode generation (JsBarcode — MIT)
 │   └── qrcode.min.js      # QR code generation (qrcode.js — MIT)
+├── docs/
+│   └── arduino/
+│       └── ESP32_ScaleCheck.html   # Reference only — not loaded at runtime
 ├── gemini.md
 ├── task_plan.md
 ├── findings.md
@@ -121,6 +134,9 @@ ZXing-js is NOT used — no camera/scan feature.
 - Support barcode formats: CODE128, EAN-13, EAN-8, UPC-A, CODE39, ITF-14
 - Support QR code with error correction level H (highest) by default
 - Keep the side panel open persistently (this is by default with sidePanel API)
+- Support multiple features via a dropdown selector
+- Use feature registry pattern: { id, label, init(), mount(), unmount() }
+- Use system fonts only (no CDN, no bundled font files)
 
 ### DO NOT
 - Make any network requests at runtime
@@ -136,7 +152,7 @@ ZXing-js is NOT used — no camera/scan feature.
 
 - **Manifest Version:** 3 (MV3)
 - **Side Panel API:** Requires Chrome 114+
-- **Required Permissions:** `sidePanel`
+- **Required Permissions:** `sidePanel`, `bluetooth`
 - **CSP:** `script-src 'self'; object-src 'self'` — no inline scripts, no eval
 - **Service Worker:** `background.js` calls `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })`
 
@@ -148,3 +164,5 @@ ZXing-js is NOT used — no camera/scan feature.
 |---|---|---|
 | 2026-03-23 | Initial constitution created | Project kickoff |
 | 2026-03-23 | Removed scan/camera feature; ZXing dropped | User clarified: physical scanner only, no camera needed |
+| 2026-04-11 | Added multi-feature shell + Arduino BT Controller | User request |
+| 2026-04-11 | Added bluetooth permission | Required for Web Bluetooth API (Arduino feature) |
