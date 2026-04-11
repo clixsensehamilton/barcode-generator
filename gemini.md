@@ -143,8 +143,9 @@ ZXing-js is NOT used — no camera/scan feature.
 - Store, log, or transmit user input anywhere
 - Use `eval()` or `innerHTML` with unsanitized input (use DOM APIs or textContent)
 - Use remote CDN for any library
+- Load external fonts at runtime — use system fonts only
 - Implement any camera or scanning functionality
-- Request permissions beyond: `sidePanel`
+- Request permissions beyond: `sidePanel`, `bluetooth`
 
 ---
 
