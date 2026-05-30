@@ -741,6 +741,10 @@ section {
 
 .ard-send-row { display: flex; gap: 8px; }
 
+.ard-crlf-row { display: flex; align-items: center; gap: 7px; margin-top: 7px; }
+.ard-crlf-check { accent-color: var(--c-accent); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+.ard-crlf-label { font-family: var(--font-mono); font-size: 11px; color: var(--c-dim); cursor: pointer; user-select: none; }
+
 .ard-btn-send {
   background: var(--c-accent);
   border: none;

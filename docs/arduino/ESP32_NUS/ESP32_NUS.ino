@@ -8,6 +8,7 @@
 // Port:    Select the COM port showing CH340
 // Baud:    9600
 
+#include "esp_bt.h"   // Required to release Classic BT memory
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -19,7 +20,8 @@
 #define NUS_RX_CHAR  "6e400003-b5b4-f393-e0a9-e50e24dcca9e"  // ESP32 notifies here
 
 BLECharacteristic *rxChar;
-bool deviceConnected = false;
+bool deviceConnected     = false;
+bool prevDeviceConnected = false;
 
 // -------------------------------------------------------------------
 // Connection state callbacks
@@ -30,9 +32,10 @@ class ServerCallbacks : public BLEServerCallbacks {
     Serial.println("[BLE] Client connected");
   }
   void onDisconnect(BLEServer *server) {
+    // Do NOT call advertising->start() here — the BT stack needs time
+    // to settle after a disconnect. Advertising is restarted in loop().
     deviceConnected = false;
-    Serial.println("[BLE] Client disconnected — restarting advertising");
-    BLEDevice::getAdvertising()->start();
+    Serial.println("[BLE] Client disconnected");
   }
 };
 
@@ -67,6 +70,11 @@ class TxCallbacks : public BLECharacteristicCallbacks {
 void setup() {
   Serial.begin(9600);
   Serial.println("[BLE] Initialising...");
+
+  // Release Classic Bluetooth (BR/EDR) memory so it cannot accept SPP
+  // connections from external apps (e.g. VB.NET COM port) that would
+  // otherwise drop the active BLE GATT link.
+  esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
 
   BLEDevice::init(DEVICE_NAME);
 
@@ -110,7 +118,19 @@ void setup() {
 // Loop
 // -------------------------------------------------------------------
 void loop() {
+  // Restart advertising after a disconnect — done here (not in the
+  // callback) so the BT stack has time to fully settle first.
+  if (!deviceConnected && prevDeviceConnected) {
+    delay(500);                        // let the stack settle
+    BLEDevice::startAdvertising();
+    Serial.println("[BLE] Restarted advertising");
+    prevDeviceConnected = false;
+  }
+  if (deviceConnected && !prevDeviceConnected) {
+    prevDeviceConnected = true;
+  }
+
   // Add your main logic here.
   // Keep loops short — avoid long delay() calls while BLE is active.
-  delay(100);
+  delay(10);
 }

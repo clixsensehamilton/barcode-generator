@@ -442,7 +442,7 @@ registerFeature((function () {
 
   // DOM refs — assigned in init()
   let elDeviceName, elBtnTest, elBtnConnect, elStatusDot, elCompatWarn;
-  let elValueInput, elBtnSend;
+  let elValueInput, elBtnSend, elCrlf;
   let elIncrement, elMaxValue, elThreshold, elDelay;
   let elSeqError, elBtnStart, elSeqProgress;
   let elProgressFill, elProgressLabel, elProgressStep;
@@ -518,8 +518,9 @@ registerFeature((function () {
   function sendValue() {
     const val = elValueInput.value.trim();
     if (!val || !pairPort) return;
-    pairPort.postMessage({ type: 'send', value: val });
-    log('-> ' + val, 'sent');
+    const toSend = elCrlf.checked ? val + '\r\n' : val;
+    pairPort.postMessage({ type: 'send', value: toSend });
+    log('-> ' + val + (elCrlf.checked ? ' [CRLF]' : ''), 'sent');
     elValueInput.value = '';
     elValueInput.focus();
   }
@@ -583,8 +584,9 @@ registerFeature((function () {
       elProgressStep.textContent  = (i + 1) + '/' + full.length;
 
       if (!pairPort) { seqAbort = true; break; }
-      pairPort.postMessage({ type: 'send', value: sent });
-      log('-> ' + sent + (isReturning ? '  return' : '  up'), 'sent');
+      var toSend = elCrlf.checked ? sent + '\r\n' : sent;
+      pairPort.postMessage({ type: 'send', value: toSend });
+      log('-> ' + sent + (isReturning ? '  return' : '  up') + (elCrlf.checked ? ' [CRLF]' : ''), 'sent');
 
       if (i < full.length - 1 && !seqAbort) await sleep(delayMs);
     }
@@ -614,6 +616,7 @@ registerFeature((function () {
       elCompatWarn    = document.getElementById('ard-compat-warn');
       elValueInput    = document.getElementById('ard-value-input');
       elBtnSend       = document.getElementById('ard-btn-send');
+      elCrlf          = document.getElementById('ard-crlf');
       elIncrement     = document.getElementById('ard-increment');
       elMaxValue      = document.getElementById('ard-max-value');
       elThreshold     = document.getElementById('ard-threshold');
